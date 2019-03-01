@@ -1,0 +1,24 @@
+@charset "UTF-8";
+
+body {
+  display: block;
+  position: absolute;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.main-wapper {
+  display: block;
+  height: 100%;
+  padding: 0;
+  margin: 0 auto;
+}
+
+.walk {
+  display: block;
+  height: 100%;
+  margin: 0 auto;
+}
+
