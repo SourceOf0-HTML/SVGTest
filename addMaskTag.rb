@@ -16,18 +16,35 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
   # ディレクトリーを必要に応じて作成
   destination_path.dirname.mkpath
 
-  elementCount = 0
-  elementStr = ""
-  
   # 書き出し
   destination_path.open "w" do |f|
   
+    isSVG = false
+    elementCount = 0
+    elementStr = ""
+    
     # 元ファイルの各行について繰り返し
     source_path.each_line do |line|
       
       # コメントアウトはスキップ
       next if (line.start_with?("<!--") && line.end_with?("-->\n"))
       
+      unless isSVG
+        # まだデータ本体まで辿り着いてない
+        if line.start_with?("<svg") then
+          # 本体発見
+          f.puts line
+          isSVG = true
+        end
+        # 終了
+        next
+      end
+      
+      if line.start_with?("</svg>") then
+        f.puts line
+        # 終了
+        next
+      end
       if line.include?("Mtarget") then
         # ターゲット用の属性を付与
         f.puts line.sub(">", " clip-path=\"url(#mask_target)\">")
