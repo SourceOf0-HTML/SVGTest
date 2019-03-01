@@ -24,16 +24,19 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
   
     # 元ファイルの各行について繰り返し
     source_path.each_line do |line|
-    
+      
+      # コメントアウトはスキップ
+      next if (line.start_with?("<!--") && line.end_with?("-->\n"))
+      
       if line.include?("Mtarget") then
         # ターゲット用の属性を付与
-        f.puts line.sub(">", ' clip-path="url(#mask_target)">')
-
+        f.puts line.sub(">", " clip-path=\"url(#mask_target)\">")
+      
       elsif line.include?("Mask") then
         f.puts line
         
         # マスク用データを初期化
-        elementStr = '<clipPath id="mask_target">' + "\n"
+        elementStr = "<clipPath id=\"mask_target\">\n"
         elementCount = 1
         #f.puts "[FOUND]"
         

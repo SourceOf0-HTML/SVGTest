@@ -22,3 +22,8 @@ body {
   margin: 0 auto;
 }
 
+.walk>use {
+  display: block;
+  height: 100%;
+}
+
