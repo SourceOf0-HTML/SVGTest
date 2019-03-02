@@ -7,7 +7,7 @@ var timeFromLastUpdate;
 var frameNumber = 1;
 
 function getFramePath(i) {
-  return imagePath + "/walk_" + "00000".substr(0, 5 - i.toString().length) + i + ".svg";
+  return imagePath + "/walk_" + "000".substr(0, 3 - i.toString().length) + i + ".svg";
 }
 
 function step(startTime) {
@@ -28,5 +28,16 @@ function step(startTime) {
 }
 
 $(window).on("load", function() {
-  requestAnimationFrame(step);
+  count = 0;
+  for( i = 0; i <= 10; i++ ) {
+    $.ajax({
+      type: "get",
+      url: getFramePath(i)
+    }).done(function(data) {
+      var svg = $(data).find("svg");
+      $("body").prepend(svg);
+      count++;
+      if( count == 10 ) requestAnimationFrame(step);
+    });
+  }
 });

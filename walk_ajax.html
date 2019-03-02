@@ -26,16 +26,7 @@
     </div><!-- .main-wapper -->
     
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-    <script>
-      $.ajax({
-        type: "get",
-        url: "./destination/result.svg"
-      }).done(function(data) {
-        var svg = $(data).find("svg");
-        $("body").prepend(svg);
-      });
-    </script>
-    <script src="embed.js"></script>
+    <script src="ajax.js"></script>
   </body>
   
 </html>
