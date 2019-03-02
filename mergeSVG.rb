@@ -20,9 +20,13 @@ destination_path.open "w" do |f|
     rel_path = source_path.relative_path_from source_dir
     
     isSVG = false
-    id_name = ""
+    idName = ""
     elementCount = 0
-    elementStr = ""
+    elementID = ""
+    isClip = false
+    clipDataArr = []
+    clipCount = 0
+    clipID = ""
     
     # 元ファイルの各行について繰り返し
     source_path.each_line do |line|
@@ -36,7 +40,7 @@ destination_path.open "w" do |f|
           # 本体発見
           
           # 属性抽出
-          id_name = line[/id=\"(.+?)\"/, 1]
+          idName = line[/id=\"(.+?)\"/, 1]
           width = line[/width=\"(.+?)px\"/, 1]
           height = line[/height=\"(.+?)px\"/, 1]
           
@@ -46,7 +50,7 @@ destination_path.open "w" do |f|
             f.puts "<defs>"
             isFirst = false
           end
-          f.puts "<symbol id=\"#{id_name}\" viewBox=\"0 0 #{width} #{height}\">"
+          f.puts "<symbol id=\"#{idName}\" viewBox=\"0 0 #{width} #{height}\">"
           isSVG = true
         end
         # 終了
@@ -60,63 +64,94 @@ destination_path.open "w" do |f|
       end
       
       # id補正
-      line.gsub!(/ id=\".+?\"/, " id=\"#{id_name}_#{line[/id=\"(.+?)\"/, 1]}\"")
-      line.gsub!(/ clip-path=\"url\(#.+?\)\"/, " clip-path=\"url(\##{id_name}_#{line[/clip-path=\"url\(#(.+?)\)\"/, 1]}\)\"")
+      line.gsub!(/ id=\".+?\"/, " id=\"#{idName}_#{line[/id=\"(.+?)\"/, 1]}\"")
+      line.gsub!(/ clip-path=\"url\(#.+?\)\"/, " clip-path=\"url(\##{idName}_#{line[/clip-path=\"url\(#(.+?)\)\"/, 1]}\)\"")
       
-      if line.include?("Mtarget") then
-        # ターゲット用の属性を付与
-        f.puts line.sub(">", " clip-path=\"url(##{id_name}_mask_target)\">")
-      
-      elsif line.include?("Mask") then
-        f.puts line
+      # clipPathをMaskに置換＆useによる参照に変更
+      line.sub!("clip-path=", "mask=")
+      if line.start_with?("<clipPath") then
+        clipCount = 0
+        clipID = "cmn_" + line[/id=\"(.+?)\"/, 1]
+        line.sub!("<clipPath", "<mask style=\"mask-type:alpha;\"")
+        isClip = true
         
+      elsif isClip then
+        if line.start_with?("</clipPath>") then
+          # Mask終端
+          isClip = false
+        else
+          # チェック用に退避
+          clipCount += 1
+          clipDataArr.unshift(line)
+        end
+        # データ退避中なのでスキップ
+        next
+        
+      elsif clipCount > 0 then
+        # データが一致するかチェックする
+        clipCount -= 1
+        if clipDataArr[clipCount] != line then
+          # 同じではないので退避していたデータと比較済み部分を出力
+          str  = clipDataArr.reverse.join
+          str += "</mask>\n"
+          str += clipDataArr.slice(clipCount, clipDataArr.length - clipCount).reverse.join
+          line = line + str
+          clipCount = 0
+          
+        elsif clipCount == 0 then
+          # 一致するデータなのでuseに置き換える
+          line = "<use xlink:href=\"##{idName}_#{clipID}\"/>\n"
+          line += "</mask>\n"
+          line += "<g id=\"#{idName}_#{clipID}\">\n"
+          line += clipDataArr.reverse.join
+          line += "</g>\n"
+          clipDataArr.clear
+          
+        else 
+          # データ一致チェック中なので出力しない
+          next
+        end
+        
+      end
+      
+      # グループレイヤーにマスクを付与
+      if line.match(/id=\".+?_Mtarget\"/) then
+        # ターゲット用の属性を付与
+        line.sub!(">", " mask=\"url(##{idName}_mask_target)\">")
+        
+      elsif line.match(/id=\".+?_Mask\"/) then
         # マスク用データを初期化
-        elementStr = "<clipPath id=\"#{id_name}_mask_target\">\n"
         elementCount = 1
-        #f.puts "[FOUND]"
+        elementID = line[/id=\"(.+?_Mask)\"/, 1]
         
       elsif elementCount > 0 then
-        
-        if line.start_with?("<path") then
-          # マスク用データに格納しつつ出力
-          elementStr += line
-          f.puts line
-          
-        elsif line.start_with?("</") then
+        if line.start_with?("</") then
           if elementCount == 1 then
-            # マスク該当箇所終端のためマスクを出力
-            elementStr += "</clipPath>"
-            f.puts elementStr
-            elementCount = 0
-            
             # 元データの終端を出力
-            f.puts line
-            #f.puts "[END]"
+            
+            # マスク該当箇所終端のためマスクを出力
+            line += "<mask id=\"#{idName}_mask_target\" style=\"mask-type:alpha;\">\n"
+            line += "<use xlink:href=\"##{elementID}\"/>\n"
+            line += "</mask>\n"
+            elementCount = 0
+            elementID = ""
             
           else
-            # マスク用データに格納しつつ出力
-            elementStr += line
-            f.puts line
-            
             # 要素の階層を下げる
             elementCount -= 1
-            #f.puts "[DOWN]"
           end
           
-        elsif line.start_with?("<") then
-          # マスク用データに格納しつつ出力
-          elementStr += line
-          f.puts line
-          
-          # 要素の階層を上げる
+        elsif !line.end_with?("/>\n") then
+          # 要素が閉じていないので階層を上げる
           elementCount += 1
-          #f.puts "[ADD]"
         end
-
-      else
-        # そのまま出力
-        f.puts line
+        
       end
+      
+      
+      # 出力
+      f.puts line
+      #f.print line.gsub(/[\r\n]/,"")
       
     end
     
