@@ -59,15 +59,13 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
       
       if line.start_with?("</svg>") then
         # デザイン属性をCSS形式で出力
-        f.puts "<style>"
+        str = "<style>\n"
         classList.each_with_index {|data, i|
-          f.puts ".path-#{i}{#{data.gsub("=\"", ":").gsub("\"", ";")}}"
+          str += ".path-#{i}{#{data.gsub("=\"", ":").gsub(/\" */, ";")}}\n"
         }
-        f.puts "</style>"
+        str += "</style>\n"
         
-        f.puts line
-        # 終了
-        next
+        line = str + line
       end
       
       # 座標データを圧縮
@@ -172,8 +170,8 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
       
       
       # 出力
-      #f.puts line
-      f.print line.gsub(/[\r\n]/,"")
+      f.puts line
+      #f.print line.gsub(/[\r\n]/,"")
       
     end
   end
