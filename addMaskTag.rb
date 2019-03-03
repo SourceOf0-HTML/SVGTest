@@ -13,6 +13,8 @@ require "pathname"
 
 source_dir = Pathname("source")
 destination_dir = Pathname("destination")
+classList = []
+
 
 Pathname.glob(source_dir.join("**/*")) do |source_path|
   # ファイルじゃないとき（ディレクトリーのとき）はスキップ
@@ -56,6 +58,13 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
       end
       
       if line.start_with?("</svg>") then
+        # デザイン属性をCSS形式で出力
+        f.puts "<style>"
+        classList.each_with_index {|data, i|
+          f.puts ".path-#{i}{#{data.gsub("=\"", ":").gsub("\"", ";")}}"
+        }
+        f.puts "</style>"
+        
         f.puts line
         # 終了
         next
@@ -65,6 +74,20 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
       line.sub!(/ d=\"(.+?)\"/) {
         " d=\"#{$1.strip.gsub(/ *([a-zA-Z\-]) */, '\1').gsub(" ", ",")}\""
       }
+      
+      # デザイン属性を検索＆共通化
+      if line.start_with?("<path ") then
+        attr = line[/<path (.+) d=/, 1]
+        index = classList.index(attr)
+        unless index then
+          # 新規属性を追加
+          index = classList.length
+          classList.push(attr)
+        end
+        # クラスに置換
+        line.sub!(attr, "class=\"path-#{index}\"")
+      end
+      
       
       # clipPathをMaskに置換＆useによる参照に変更
       line.sub!("clip-path=", "mask=")
@@ -149,8 +172,8 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
       
       
       # 出力
-      f.puts line
-      #f.print line.gsub(/[\r\n]/,"")
+      #f.puts line
+      f.print line.gsub(/[\r\n]/,"")
       
     end
   end

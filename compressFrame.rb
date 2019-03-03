@@ -19,6 +19,7 @@ merge_num = 24
 isFirst = true
 fileArr = Pathname.glob(source_dir.join("**/*"))
 load_count = 0
+classList = []
 
 fileArr.each do |source_path|
   # ファイルじゃないとき（ディレクトリーのとき）はスキップ
@@ -86,6 +87,14 @@ fileArr.each do |source_path|
         merge_count = (merge_count + 1) % merge_num
         if (merge_count == 0) || (fileArr.length == load_count) then
           f.puts "</defs>"
+          
+          # デザイン属性をCSS形式で出力
+          f.puts "<style>"
+          classList.each_with_index {|data, i|
+            f.puts ".path-#{i}{#{data.gsub("=\"", ":").gsub("\"", ";")}}"
+          }
+          f.puts "</style>"
+          
           f.puts "</svg>"
           file_count += 1
           isFirst = true
@@ -99,6 +108,20 @@ fileArr.each do |source_path|
       line.sub!(/ d=\"(.+?)\"/) {
         " d=\"#{$1.strip.gsub(/ *([a-zA-Z\-]) */, '\1').gsub(" ", ",")}\""
       }
+      
+      # デザイン属性を検索＆共通化
+      if line.start_with?("<path ") then
+        attr = line[/<path (.+) d=/, 1]
+        index = classList.index(attr)
+        unless index then
+          # 新規属性を追加
+          index = classList.length
+          classList.push(attr)
+        end
+        # クラスに置換
+        line.sub!(attr, "class=\"path-#{index}\"")
+      end
+      
       
       # id補正
       line.gsub!(/ id=\".+?\"/, " id=\"#{idName}_#{line[/id=\"(.+?)\"/, 1]}\"")
@@ -187,8 +210,8 @@ fileArr.each do |source_path|
       
       
       # 出力
-      f.puts line
-      #f.print line.gsub(/[\r\n]/,"")
+      #f.puts line
+      f.print line.gsub(/[\r\n]/,"")
       
     end
     

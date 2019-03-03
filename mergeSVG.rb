@@ -14,6 +14,7 @@ require "pathname"
 source_dir = Pathname("source")
 destination_dir = Pathname("destination")
 destination_path = destination_dir.join("result.svg")
+classList = []
 
 # ディレクトリーを必要に応じて作成
 destination_path.dirname.mkpath
@@ -78,6 +79,20 @@ destination_path.open "w" do |f|
       line.sub!(/ d=\"(.+?)\"/) {
         " d=\"#{$1.strip.gsub(/ *([a-zA-Z\-]) */, '\1').gsub(" ", ",")}\""
       }
+      
+      # デザイン属性を検索＆共通化
+      if line.start_with?("<path ") then
+        attr = line[/<path (.+) d=/, 1]
+        index = classList.index(attr)
+        unless index then
+          # 新規属性を追加
+          index = classList.length
+          classList.push(attr)
+        end
+        # クラスに置換
+        line.sub!(attr, "class=\"path-#{index}\"")
+      end
+      
       
       # id補正
       line.gsub!(/ id=\".+?\"/, " id=\"#{idName}_#{line[/id=\"(.+?)\"/, 1]}\"")
@@ -166,14 +181,22 @@ destination_path.open "w" do |f|
       
       
       # 出力
-      f.puts line
-      #f.print line.gsub(/[\r\n]/,"")
+      #f.puts line
+      f.print line.gsub(/[\r\n]/,"")
       
     end
     
   end
   
   f.puts "</defs>"
+  
+  # デザイン属性をCSS形式で出力
+  f.puts "<style>"
+  classList.each_with_index {|data, i|
+    f.puts ".path-#{i}{#{data.gsub("=\"", ":").gsub("\"", ";")}}"
+  }
+  f.puts "</style>"
+  
   f.puts "</svg>"
   
 end
