@@ -55,6 +55,16 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
         end
       end
       
+      if line.start_with?("</svg>") then
+        f.puts line
+        # 終了
+        next
+      end
+      
+      # 座標データを圧縮
+      line.sub!(/ d=\"(.+?)\"/) {
+        " d=\"#{$1.strip.gsub(/ *([a-zA-Z\-]) */, '\1').gsub(" ", ",")}\""
+      }
       
       # clipPathをMaskに置換＆useによる参照に変更
       line.sub!("clip-path=", "mask=")
@@ -139,8 +149,8 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
       
       
       # 出力
-      #f.puts line
-      f.print line.gsub(/[\r\n]/,"")
+      f.puts line
+      #f.print line.gsub(/[\r\n]/,"")
       
     end
   end

@@ -74,6 +74,11 @@ destination_path.open "w" do |f|
         next
       end
       
+      # 座標データを圧縮
+      line.sub!(/ d=\"(.+?)\"/) {
+        " d=\"#{$1.strip.gsub(/ *([a-zA-Z\-]) */, '\1').gsub(" ", ",")}\""
+      }
+      
       # id補正
       line.gsub!(/ id=\".+?\"/, " id=\"#{idName}_#{line[/id=\"(.+?)\"/, 1]}\"")
       line.gsub!(/ clip-path=\"url\(#.+?\)\"/, " clip-path=\"url(\##{idName}_#{line[/clip-path=\"url\(#(.+?)\)\"/, 1]}\)\"")
