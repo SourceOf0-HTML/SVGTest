@@ -4,7 +4,7 @@ const totalFrames = 260;
 const timePerFrame = 24;
 var timeWhenLastUpdate;
 var timeFromLastUpdate;
-var frameNumber = 1;
+var frameNumber = 0;
 
 function getFramePath(i) {
   return imagePath + "/walk_" + "000".substr(0, 3 - i.toString().length) + i + ".svg";
