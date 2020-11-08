@@ -1,6 +1,6 @@
 ##############################
 #
-# Mohoで出力したSVGに
+# Mohoで出力したSVGを圧縮＆
 # グループレイヤーのマスクを付与
 #
 # MEMO
@@ -11,14 +11,17 @@
 
 require "pathname"
 
-source_dir = Pathname("source")
-destination_dir = Pathname("destination")
+source_dir = Pathname(ARGV[0])
+destination_dir = Pathname(ARGV[1])
 classList = []
 
 
 Pathname.glob(source_dir.join("**/*")) do |source_path|
   # ファイルじゃないとき（ディレクトリーのとき）はスキップ
   next unless source_path.file?
+
+  # svgではないときはスキップ
+  next if source_path.extname.downcase != ".svg"
 
   # source_dir から見た相対パス
   rel_path = source_path.relative_path_from source_dir
@@ -112,10 +115,11 @@ Pathname.glob(source_dir.join("**/*")) do |source_path|
         clipCount -= 1
         if clipDataArr[clipCount] != line then
           # 同じではないので退避していたデータと比較済み部分を出力
-          str  = clipDataArr.reverse.join
+          str  = "<g id=\"#{clipID}\">\n"
+          str += clipDataArr.reverse.join
+          str += "</g>\n"
           str += "</mask>\n"
-          str += clipDataArr.slice(clipCount, clipDataArr.length - clipCount).reverse.join
-          line = line + str
+          line = str + line
           clipCount = 0
           
         elsif clipCount == 0 then
